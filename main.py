@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 from crewai import Crew
-from langchain_groq import ChatGroq
 from backend.agents import ProductAnalysisAgents
 from backend.tasks import Productanalysistask
 from dotenv import load_dotenv
