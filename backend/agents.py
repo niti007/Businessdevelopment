@@ -1,15 +1,15 @@
 import os
 from crewai import Agent
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from crewai_tools import SerperDevTool
 
 search_tool = SerperDevTool()
 
 class ProductAnalysisAgents():
     def __init__(self):
-        self.llm = ChatGroq(
-            api_key=os.getenv("GEMINI_API_KEY"),
-            model="gemini/gemini-2.5-flash",
+        self.llm = ChatOpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            model="gpt-4o-mini",
         )
 
     def market_research_analyst(self, product_name):
@@ -62,29 +62,3 @@ Seasoned in shaping business strategies for products like {product_name}.
             llm=self.llm,
             max_iter=2,
         )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
