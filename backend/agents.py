@@ -1,16 +1,13 @@
 import os
 from crewai import Agent
-from langchain_openai import ChatOpenAI
 from crewai_tools import SerperDevTool
 
 search_tool = SerperDevTool()
 
 class ProductAnalysisAgents():
     def __init__(self):
-        self.llm = ChatOpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            model="gpt-4o-mini",
-        )
+        # CrewAI will automatically use OPENAI_API_KEY from environment
+        self.model = "gpt-4o-mini"
 
     def market_research_analyst(self, product_name):
         return Agent(
@@ -23,7 +20,7 @@ class ProductAnalysisAgents():
                         to reach a wide audience.
                 """,
             verbose=True,
-            llm=self.llm,
+            model=self.model,
             tools=[search_tool],
             max_iter=2,
         )
@@ -41,7 +38,7 @@ class ProductAnalysisAgents():
                         for different business models.
                 """,
             verbose=True,
-            llm=self.llm,
+            model=self.model,
             tools=[search_tool],
             max_iter=2,
         )
@@ -59,6 +56,6 @@ Seasoned in shaping business strategies for products like {product_name}.
                         revenue streams to ensure long-term sustainability
                 """,
             verbose=True,
-            llm=self.llm,
+            model=self.model,
             max_iter=2,
         )
