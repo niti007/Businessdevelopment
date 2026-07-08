@@ -4,7 +4,7 @@ A comprehensive product analysis tool powered by AI agents that provides detaile
 
 ## Overview
 
-This application leverages **CrewAI** with **Groq's LLM** to orchestrate specialized AI agents that analyze products from multiple perspectives:
+This application leverages **CrewAI** with **OpenRouter** to orchestrate specialized AI agents that analyze products from multiple perspectives:
 
 - **Market Research Analyst** - Analyzes market demand and marketing strategies
 - **Technology Expert** - Assesses technological feasibility and manufacturing requirements
@@ -29,7 +29,7 @@ The results are presented through an interactive **Streamlit** dashboard for eas
 - **Python 3.x** - Core language
 - **Streamlit** - Web UI framework
 - **CrewAI** - Multi-agent orchestration framework
-- **Groq API** - LLM provider (using Gemini 2.5 Flash)
+- **OpenRouter API** - LLM provider (using openai/gpt-4.1-mini)
 - **Langchain** - LLM integration and tools
 - **SerperDev Tool** - Web search capabilities for research
 
@@ -50,8 +50,8 @@ Businessdevelopment/
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Groq API Key
+- Python 3.10 or higher
+- OpenRouter API Key
 - SerperDev API Key (for web search)
 
 ### Setup Steps
@@ -77,7 +77,7 @@ Businessdevelopment/
    
    Create a `.env` file in the root directory:
    ```
-   GEMINI_API_KEY=your_groq_api_key
+   OPENROUTER_API_KEY=your_openrouter_api_key
    SERPER_API_KEY=your_serper_api_key
    ```
 
@@ -114,7 +114,7 @@ Productanalysistask (Defines analysis tasks)
         ↓
 CrewAI Crew (Orchestrates agents and tasks)
         ↓
-Groq LLM (Generates insights using Gemini 2.5 Flash)
+OpenRouter LLM (Generates insights using openai/gpt-4.1-mini)
         ↓
 Streamlit Dashboard (Displays formatted reports)
 ```
@@ -168,10 +168,10 @@ Modify `main.py` to adjust:
 
 ## API Keys Required
 
-### Groq API Key
-- Sign up at [Groq Console](https://console.groq.com)
-- Create an API key for Gemini model access
-- Add to `.env` as `GEMINI_API_KEY`
+### OpenRouter API Key
+- Sign up at [OpenRouter](https://openrouter.ai)
+- Create an API key for model access
+- Add to `.env` as `OPENROUTER_API_KEY`
 
 ### SerperDev API Key
 - Sign up at [Serper.dev](https://serper.dev)
@@ -196,7 +196,7 @@ Each analysis generates comprehensive reports including:
 - Analysis quality depends on LLM model capabilities
 - Web search results are based on current Serper.dev data
 - Analysis may take several minutes depending on product complexity
-- Requires valid API keys for both Groq and Serper.dev
+- Requires valid API keys for both OpenRouter and Serper.dev
 
 ## Future Enhancements
 

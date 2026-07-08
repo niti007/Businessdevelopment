@@ -1,13 +1,16 @@
 import os
-from crewai import Agent
+from crewai import Agent, LLM
 from crewai_tools import SerperDevTool
 
 search_tool = SerperDevTool()
 
 class ProductAnalysisAgents():
     def __init__(self):
-        # CrewAI will automatically use OPENAI_API_KEY from environment
-        self.model = "gpt-4o-mini"
+        self.llm = LLM(
+            model="openrouter/openai/gpt-4.1-mini",
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+        )
 
     def market_research_analyst(self, product_name):
         return Agent(
@@ -20,7 +23,7 @@ class ProductAnalysisAgents():
                         to reach a wide audience.
                 """,
             verbose=True,
-            model=self.model,
+            llm=self.llm,
             tools=[search_tool],
             max_iter=2,
         )
@@ -38,7 +41,7 @@ class ProductAnalysisAgents():
                         for different business models.
                 """,
             verbose=True,
-            model=self.model,
+            llm=self.llm,
             tools=[search_tool],
             max_iter=2,
         )
@@ -56,6 +59,6 @@ Seasoned in shaping business strategies for products like {product_name}.
                         revenue streams to ensure long-term sustainability
                 """,
             verbose=True,
-            model=self.model,
+            llm=self.llm,
             max_iter=2,
         )
