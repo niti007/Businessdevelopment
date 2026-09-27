@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Analysis Dashboard — Architecture</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --bg2:       #181c27;
+    --bg3:       #1e2332;
+    --border:    rgba(255,255,255,0.08);
+    --border2:   rgba(255,255,255,0.14);
+    --text:      #e2e4ed;
+    --muted:     #7c8099;
+    --purple:    #8b7cf8;
+    --purple-bg: rgba(139,124,248,0.12);
+    --amber:     #f0a940;
+    --amber-bg:  rgba(240,169,64,0.12);
+    --teal:      #34c9a0;
+    --teal-bg:   rgba(52,201,160,0.12);
+    --coral:     #f07060;
+    --coral-bg:  rgba(240,112,96,0.12);
+    --gray:      #9ca0b0;
+    --gray-bg:   rgba(156,160,176,0.12);
+    --mono:      'JetBrains Mono', 'Fira Mono', monospace;
+    --sans:      'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px 60px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 36px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 3px;
+  }
+
+  .diagram-wrap {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  svg text { font-family: var(--sans); }
+
+  /* Node styles */
+  .node-purple rect { fill: var(--purple-bg); stroke: var(--purple); stroke-width: 1; }
+  .node-purple .label { fill: var(--purple); font-size: 13px; font-weight: 600; }
+  .node-purple .sublabel { fill: #a89ef8; font-size: 11px; }
+
+  .node-amber rect { fill: var(--amber-bg); stroke: var(--amber); stroke-width: 1; }
+  .node-amber .label { fill: var(--amber); font-size: 13px; font-weight: 600; }
+  .node-amber .sublabel { fill: #c9974a; font-size: 11px; }
+
+  .node-teal rect { fill: var(--teal-bg); stroke: var(--teal); stroke-width: 1; }
+  .node-teal .label { fill: var(--teal); font-size: 13px; font-weight: 600; }
+  .node-teal .sublabel { fill: #5ec9ad; font-size: 11px; }
+
+  .node-coral rect { fill: var(--coral-bg); stroke: var(--coral); stroke-width: 1; }
+  .node-coral .label { fill: var(--coral); font-size: 13px; font-weight: 600; }
+  .node-coral .sublabel { fill: #d4806f; font-size: 11px; }
+
+  .node-gray rect { fill: var(--gray-bg); stroke: var(--gray); stroke-width: 1; }
+  .node-gray .label { fill: var(--gray); font-size: 13px; font-weight: 600; }
+
+  .pydantic-badge rect { fill: rgba(255,255,255,0.04); stroke: rgba(255,255,255,0.12); stroke-width: 0.75; stroke-dasharray: 3 2; }
+  .pydantic-badge .key { fill: #7c8099; font-size: 10px; font-weight: 500; }
+  .pydantic-badge .val { font-size: 10px; font-weight: 600; }
+  .pydantic-badge .val-purple { fill: #a89ef8; }
+  .pydantic-badge .val-amber  { fill: #d4ac6a; }
+
+  .arr { stroke: rgba(255,255,255,0.22); stroke-width: 1; fill: none; }
+  .arr-label { fill: #5a5f78; font-size: 10px; }
+  .leader { stroke: rgba(255,255,255,0.12); stroke-width: 0.75; stroke-dasharray: 3 2; fill: none; }
+
+  .persist-bar rect { fill: rgba(156,160,176,0.07); stroke: rgba(156,160,176,0.2); stroke-width: 0.75; }
+  .persist-bar text { fill: var(--muted); font-size: 10.5px; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text);
+    max-width: 260px;
+    line-height: 1.5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 99;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .tt-title { font-weight: 600; font-size: 12.5px; margin-bottom: 4px; }
+  .tooltip .tt-code { font-family: var(--mono); font-size: 10.5px; color: var(--muted); background: rgba(255,255,255,0.04); padding: 2px 5px; border-radius: 4px; display: inline-block; margin-top: 3px; }
+
+  .clickable { cursor: pointer; }
+  .clickable rect { transition: filter 0.15s; }
+  .clickable:hover rect { filter: brightness(1.25); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Product Analysis Dashboard (niti007/Businessdevelopment)</h1>
+  <p>Architecture diagram · hover nodes for detail · CrewAI + OpenRouter (gpt-4.1-mini) + Streamlit</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#8b7cf8"></div>Agent / LLM call</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0a940"></div>Trigger / gate</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#34c9a0"></div>Orchestration / success output</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f07060"></div>Error path</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.08); border:1px dashed rgba(255,255,255,0.2)"></div>Config / tool badge</div>
+</div>
+
+<div class="diagram-wrap">
+<svg width="100%" viewBox="0 0 780 870" role="img">
+  <title>Product Analysis Dashboard Architecture</title>
+  <desc>Flowchart of the CrewAI-powered Product Analysis Dashboard: a Streamlit trigger runs three sequential agents (market research, technology, business consultant) via a CrewAI Crew calling OpenRouter's gpt-4.1-mini, then either displays parsed reports or shows a caught error.</desc>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arr-muted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="rgba(240,112,96,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- ── START ── -->
+  <g class="node-gray">
+    <rect x="300" y="16" width="180" height="34" rx="17"/>
+    <text class="label" x="390" y="37" text-anchor="middle">START</text>
+  </g>
+  <line x1="390" y1="50" x2="390" y2="80" class="arr" marker-end="url(#arr)"/>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 1: Analyze Product trigger -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-amber clickable" id="n-trigger" data-tt="trigger">
+    <rect x="200" y="80" width="380" height="58" rx="8"/>
+    <text class="label" x="390" y="103" text-anchor="middle">"Analyze Product" button</text>
+    <text class="sublabel" x="390" y="120" text-anchor="middle">main.py → analyze_product(product_name)</text>
+  </g>
+  <line x1="390" y1="138" x2="390" y2="168" class="arr" marker-end="url(#arr)"/>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 2: Market Research Analyst -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-purple clickable" id="n-market" data-tt="market">
+    <rect x="200" y="168" width="380" height="70" rx="8"/>
+    <text class="label" x="390" y="190" text-anchor="middle">Market Research Analyst</text>
+    <text class="sublabel" x="390" y="207" text-anchor="middle">gpt-4.1-mini (OpenRouter) + SerperDevTool</text>
+    <text class="sublabel" x="390" y="222" text-anchor="middle">async_execution=True · max_iter=2</text>
+  </g>
+  <!-- Tool badge -->
+  <g class="pydantic-badge clickable" id="n-tool1" data-tt="tool">
+    <rect x="595" y="170" width="170" height="64" rx="6"/>
+    <text class="key" x="605" y="186">Shared tool</text>
+    <text class="val val-purple" x="605" y="202" style="font-family:monospace;font-size:11px">SerperDevTool()</text>
+    <text class="key" x="605" y="216">Live web search</text>
+    <text class="key" x="605" y="230">needs SERPER_API_KEY</text>
+  </g>
+  <line x1="580" y1="203" x2="595" y2="203" class="leader"/>
+
+  <line x1="390" y1="238" x2="390" y2="268" class="arr" marker-end="url(#arr)"/>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 3: Technology Expert -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-purple clickable" id="n-tech" data-tt="tech">
+    <rect x="200" y="268" width="380" height="70" rx="8"/>
+    <text class="label" x="390" y="290" text-anchor="middle">Technology Expert</text>
+    <text class="sublabel" x="390" y="307" text-anchor="middle">gpt-4.1-mini (OpenRouter) + SerperDevTool</text>
+    <text class="sublabel" x="390" y="322" text-anchor="middle">sync task · max_iter=2</text>
+  </g>
+  <!-- reuse-tool badge -->
+  <g class="pydantic-badge">
+    <rect x="595" y="270" width="170" height="52" rx="6"/>
+    <text class="key" x="605" y="286">Reuses</text>
+    <text class="val val-purple" x="605" y="302" style="font-family:monospace;font-size:11px">search_tool</text>
+    <text class="key" x="605" y="316">same instance as above</text>
+  </g>
+  <line x1="580" y1="297" x2="595" y2="297" class="leader"/>
+
+  <line x1="390" y1="338" x2="390" y2="368" class="arr" marker-end="url(#arr)"/>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 4: Business Development Consultant -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-purple clickable" id="n-business" data-tt="business">
+    <rect x="200" y="368" width="380" height="70" rx="8"/>
+    <text class="label" x="390" y="390" text-anchor="middle">Business Dev Consultant</text>
+    <text class="sublabel" x="390" y="407" text-anchor="middle">Synthesizes market + tech reports</text>
+    <text class="sublabel" x="390" y="422" text-anchor="middle">No tools · max_iter=2</text>
+  </g>
+  <!-- no-tool badge -->
+  <g class="pydantic-badge">
+    <rect x="595" y="372" width="170" height="52" rx="6"/>
+    <text class="key" x="605" y="388">Tools</text>
+    <text class="val" x="605" y="404" style="fill:#34c9a0;font-size:11px;font-family:monospace">none</text>
+    <text class="key" x="605" y="418">LLM-only synthesis</text>
+  </g>
+  <line x1="580" y1="399" x2="595" y2="399" class="leader"/>
+
+  <line x1="390" y1="438" x2="390" y2="468" class="arr" marker-end="url(#arr)"/>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 5: Crew.kickoff() -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-teal clickable" id="n-crew" data-tt="crew">
+    <rect x="200" y="468" width="380" height="58" rx="8"/>
+    <text class="label" x="390" y="491" text-anchor="middle">CrewAI Crew.kickoff()</text>
+    <text class="sublabel" x="390" y="508" text-anchor="middle">Process.sequential (default) · max_rpm=29</text>
+  </g>
+  <!-- crew config badge -->
+  <g class="pydantic-badge">
+    <rect x="595" y="470" width="170" height="52" rx="6"/>
+    <text class="key" x="605" y="486">Order</text>
+    <text class="val" x="605" y="502" style="fill:#5ec9ad;font-size:10.5px;font-family:monospace">market → tech → biz</text>
+    <text class="key" x="605" y="516">3 agents · 3 tasks</text>
+  </g>
+  <line x1="580" y1="499" x2="595" y2="499" class="leader"/>
+
+  <!-- success branch (left) -->
+  <path d="M270 526 L230 526 L230 556" class="arr" fill="none" stroke="rgba(255,255,255,0.22)" marker-end="url(#arr)"/>
+  <text class="arr-label" x="192" y="544" text-anchor="middle">success</text>
+
+  <!-- failure branch (right) -->
+  <path d="M510 526 L550 526 L550 556" class="arr" fill="none" stroke="rgba(240,112,96,0.4)" stroke-dasharray="5 3" marker-end="url(#arr-muted)"/>
+  <text class="arr-label" x="592" y="544" text-anchor="middle" style="fill:#d4806f">exception</text>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 6: extract_report_content / display_results -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-teal clickable" id="n-display" data-tt="display">
+    <rect x="100" y="556" width="260" height="58" rx="8"/>
+    <text class="label" x="230" y="579" text-anchor="middle">display_results()</text>
+    <text class="sublabel" x="230" y="596" text-anchor="middle">Parses .raw → st.expander per report</text>
+  </g>
+
+  <!-- ─────────────────────────────────────────── -->
+  <!-- NODE 7: exception handling -->
+  <!-- ─────────────────────────────────────────── -->
+  <g class="node-coral clickable" id="n-error" data-tt="error">
+    <rect x="420" y="556" width="260" height="58" rx="8"/>
+    <text class="label" x="550" y="579" text-anchor="middle">except Exception</text>
+    <text class="sublabel" x="550" y="596" text-anchor="middle">st.error(f"An error occurred: {'{'}e{'}'}")</text>
+  </g>
+
+  <!-- display → merge -->
+  <line x1="230" y1="614" x2="230" y2="696" class="arr" marker-end="url(#arr)"/>
+  <!-- error → merge -->
+  <line x1="550" y1="614" x2="550" y2="696" class="arr" stroke="rgba(240,112,96,0.4)" stroke-dasharray="5 3" fill="none" marker-end="url(#arr-muted)"/>
+  <!-- merge lines to END -->
+  <path d="M230 696 L390 724" class="arr" fill="none" stroke="rgba(255,255,255,0.22)" marker-end="url(#arr)"/>
+  <path d="M550 696 L390 724" class="arr" fill="none" stroke="rgba(255,255,255,0.22)" marker-end="url(#arr)"/>
+
+  <!-- ── END ── -->
+  <g class="node-gray">
+    <rect x="300" y="724" width="180" height="34" rx="17"/>
+    <text class="label" x="390" y="745" text-anchor="middle">END</text>
+  </g>
+
+  <!-- ── Persistence bar ── -->
+  <g class="persist-bar">
+    <rect x="30" y="786" width="720" height="30" rx="6"/>
+    <text x="390" y="805" text-anchor="middle">
+      🚫  No database — reports live only in the Streamlit session (st.expander); nothing is saved to disk
+    </text>
+  </g>
+
+  <!-- ── Shared LLM config sidebar (left) ── -->
+  <g class="pydantic-badge clickable" id="n-llm" data-tt="llm">
+    <rect x="14" y="168" width="170" height="270" rx="6"/>
+    <text class="key" x="24" y="184">Shared LLM (agents.py)</text>
+    <text class="val val-purple" x="24" y="200" style="font-size:10px;font-family:monospace">LLM(model=</text>
+    <text class="val val-purple" x="24" y="213" style="font-size:9.5px;font-family:monospace">"openrouter/openai/</text>
+    <text class="val val-purple" x="24" y="225" style="font-size:9.5px;font-family:monospace">gpt-4.1-mini")</text>
+    <text class="key" x="24" y="242">base_url:</text>
+    <text class="key" x="24" y="254" style="font-size:9px">openrouter.ai/api/v1</text>
+    <text class="key" x="24" y="270">api_key:</text>
+    <text class="key" x="24" y="282" style="font-size:9px">OPENROUTER_API_KEY env</text>
+    <text class="key" x="24" y="300" style="font-style:italic">One LLM instance built</text>
+    <text class="key" x="24" y="312" style="font-style:italic">per ProductAnalysis-</text>
+    <text class="key" x="24" y="324" style="font-style:italic">Agents(), reused by</text>
+    <text class="key" x="24" y="336" style="font-style:italic">all 3 agents' .llm=</text>
+    <text class="key" x="24" y="354">verbose=True on all 3</text>
+    <text class="key" x="24" y="368">agents (console logs)</text>
+  </g>
+  <line x1="184" y1="303" x2="200" y2="303" class="leader"/>
+
+</svg>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div id="tt-body"></div>
+</div>
+
+<script>
+const tips = {
+  trigger: {
+    title: '"Analyze Product" button',
+    body: 'In <span class="tt-code">main.py</span>, clicking the Streamlit button with a non-empty <span class="tt-code">product_name</span> text input calls <span class="tt-code">analyze_product(product_name)</span>, which builds the agents, tasks and Crew from scratch on every click.'
+  },
+  market: {
+    title: 'Market Research Analyst',
+    body: 'Agent role "Market Research Analyst" (backend/agents.py). Goal: analyze market demand and suggest marketing strategies. Uses <span class="tt-code">tools=[search_tool]</span> (SerperDevTool) and the shared OpenRouter LLM, <span class="tt-code">max_iter=2</span>. Its task has <span class="tt-code">async_execution=True</span> and must include the current month, ≥5 marketing bullet points, and the ideal customer profile.'
+  },
+  tool: {
+    title: 'SerperDevTool()',
+    body: '<span class="tt-code">search_tool = SerperDevTool()</span> is instantiated once at module scope in backend/agents.py and passed into both the Market Research Analyst and Technology Expert agents\' tool lists. Requires a <span class="tt-code">SERPER_API_KEY</span> in .env for live web search results.'
+  },
+  tech: {
+    title: 'Technology Expert',
+    body: 'Agent role "Technology Expert". Goal: assess technological feasibility and manufacturing requirements. Same SerperDevTool + OpenRouter LLM, <span class="tt-code">max_iter=2</span>. Unlike the market task, <span class="tt-code">async_execution</span> is not set (defaults to synchronous). Task requires ≥5 technology bullet points.'
+  },
+  business: {
+    title: 'Business Dev Consultant',
+    body: 'Agent role "Business Development Consultant". Goal: evaluate scalability and revenue streams. No tools at all — the task description itself instructs it to "summarize the market and technological reports," relying on CrewAI\'s sequential context passing rather than an explicit context= list. Must return ≥5 business bullet points plus a plan, goals and launch timeline.'
+  },
+  crew: {
+    title: 'Crew.kickoff()',
+    body: '<span class="tt-code">Crew(agents=[...], tasks=[...], max_rpm=29)</span> in main.py. No <span class="tt-code">process=</span> is set, so CrewAI defaults to <span class="tt-code">Process.sequential</span> — tasks run in the order given: market → tech → business.'
+  },
+  display: {
+    title: 'display_results()',
+    body: '<span class="tt-code">extract_report_content()</span> handles three possible result shapes — a <span class="tt-code">("raw", content)</span> tuple, a dict with a <span class="tt-code">raw</span> key, or a CrewOutput object\'s <span class="tt-code">.raw</span> attribute — then <span class="tt-code">display_results()</span> splits the text on blank lines and renders each report in its own <span class="tt-code">st.expander</span>, adding <span class="tt-code">###</span> headers for lines starting with words like "Executive Summary" or "Scalability".'
+  },
+  error: {
+    title: 'except Exception',
+    body: 'The entire <span class="tt-code">analyze_product()</span> call in main() sits inside a try/except. Any failure — a missing/invalid API key, a rate limit, a network error — clears the loading placeholder and shows <span class="tt-code">st.error(f"An error occurred: {str(e)}")</span> instead of a report.'
+  },
+  llm: {
+    title: 'Shared LLM config',
+    body: 'Built once in <span class="tt-code">ProductAnalysisAgents.__init__</span>: <span class="tt-code">LLM(model="openrouter/openai/gpt-4.1-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))</span>. The same <span class="tt-code">self.llm</span> object is passed to all three agents\' <span class="tt-code">llm=</span> parameter.'
+  }
+};
+
+const tt = document.getElementById('tooltip');
+const ttTitle = document.getElementById('tt-title');
+const ttBody = document.getElementById('tt-body');
+
+document.querySelectorAll('[data-tt]').forEach(el => {
+  el.addEventListener('mouseenter', e => {
+    const key = el.dataset.tt;
+    if (!tips[key]) return;
+    ttTitle.textContent = tips[key].title;
+    ttBody.innerHTML = tips[key].body;
+    tt.classList.add('show');
+  });
+  el.addEventListener('mousemove', e => {
+    tt.style.left = (e.clientX + 14) + 'px';
+    tt.style.top  = (e.clientY + 14) + 'px';
+  });
+  el.addEventListener('mouseleave', () => tt.classList.remove('show'));
+});
+</script>
+</body>
+</html>
