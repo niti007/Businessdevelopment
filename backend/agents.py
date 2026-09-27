@@ -4,12 +4,16 @@ from crewai_tools import SerperDevTool
 
 search_tool = SerperDevTool()
 
+
 class ProductAnalysisAgents():
     def __init__(self):
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY is missing. Add it to your .env file before running the app.")
+
         self.llm = LLM(
-            model="openrouter/openai/gpt-4.1-mini",
-            base_url="https://openrouter.ai/api/v1",
-            api_key=os.getenv("OPENROUTER_API_KEY"),
+            model="gpt-4o-mini",
+            api_key=api_key,
         )
 
     def market_research_analyst(self, product_name):
@@ -28,7 +32,7 @@ class ProductAnalysisAgents():
             max_iter=2,
         )
 
-    def technology_expert(self,product_name):
+    def technology_expert(self, product_name):
         return Agent(
             role="Technology Expert",
             goal=f"""
@@ -46,12 +50,12 @@ class ProductAnalysisAgents():
             max_iter=2,
         )
 
-    def business_consultant(self,product_name):
+    def business_consultant(self, product_name):
         return Agent(
             role="Business Development Consultant",
             goal=f"""
                 Evaluate the business model for {product_name}, 
-                   focusing on scalability and revenue streams
+                    focusing on scalability and revenue streams
                 """,
             backstory="""
 Seasoned in shaping business strategies for products like {product_name}. 
